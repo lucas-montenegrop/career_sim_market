@@ -1,5 +1,5 @@
 import express from "express";
-import apiRouter from "#api";
+import apiRouter from "./api/index.js";
 import errorHandler from "#middleware/errorHandler";
 import getUserFromToken from "#middleware/getUserFromToken";
 
