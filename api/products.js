@@ -4,7 +4,6 @@ import {
   getProductById,
   getProducts,
 } from "#db/queries/products";
-import getUserFromToken from "#middleware/getUserFromToken";
 import requireUser from "#middleware/requireUser";
 
 const router = express.Router();
@@ -43,7 +42,7 @@ router.get("/:id", async (req, res) => {
 // The assignment explicitly says:
 // if product does not exist, send 404 even if the user is logged in
 // That means your route should definitely check product existence.
-router.get("/:id/orders", getUserFromToken, async (req, res, next) => {
+router.get("/:id/orders", async (req, res, next) => {
   const product = await getProductById(req.params.id);
   if (!product) return res.status(404).send("Product not found.");
 

@@ -1,10 +1,13 @@
 import express from "express";
 import {
-  getOrdersByUserIdAndProductId,
-  getProductById,
-  getProducts,
-} from "#db/queries/products";
-import getUserFromToken from "#middleware/getUserFromToken";
+  addProductToOrder,
+  createOrder,
+  getOrderById,
+  getOrdersByUserId,
+  getProductsByOrderId,
+} from "#db/queries/orders";
+import { getProductById } from "#db/queries/products";
+import requireBody from "#middleware/requireBody";
 import requireUser from "#middleware/requireUser";
 
 const router = express.Router();
@@ -21,7 +24,6 @@ const router = express.Router();
 
 router.post(
   "/",
-  getUserFromToken,
   requireUser,
   requireBody(["date"]),
   async (req, res) => {
@@ -37,7 +39,7 @@ router.post(
 // get all orders for that user
 // send array
 
-router.get("/", getUserFromToken, requireUser, async (req, res) => {
+router.get("/", requireUser, async (req, res) => {
   const orders = await getOrdersByUserId(req.user.id);
   res.send(orders);
 });
@@ -51,7 +53,7 @@ router.get("/", getUserFromToken, requireUser, async (req, res) => {
 // if order’s user_id does not match logged-in user → 403
 // otherwise send order
 
-router.get("/:id", getUserFromToken, requireUser, async (req, res) => {
+router.get("/:id", requireUser, async (req, res) => {
   const order = await getOrderById(req.params.id);
   if (!order) return res.status(404).send("Order not found.");
 
@@ -61,3 +63,41 @@ router.get("/:id", getUserFromToken, requireUser, async (req, res) => {
 
   res.send(order);
 });
+
+router.post(
+  "/:id/products",
+  requireUser,
+  requireBody(["productId", "quantity"]),
+  async (req, res) => {
+    const order = await getOrderById(req.params.id);
+    if (!order) return res.status(404).send("Order not found.");
+
+    if (order.user_id !== req.user.id) {
+      return res.status(403).send("Forbidden");
+    }
+
+    const product = await getProductById(req.body.productId);
+    if (!product) return res.status(400).send("Product not found.");
+
+    const orderProduct = await addProductToOrder(
+      order.id,
+      req.body.productId,
+      req.body.quantity,
+    );
+    res.status(201).send(orderProduct);
+  },
+);
+
+router.get("/:id/products", requireUser, async (req, res) => {
+  const order = await getOrderById(req.params.id);
+  if (!order) return res.status(404).send("Order not found.");
+
+  if (order.user_id !== req.user.id) {
+    return res.status(403).send("Forbidden");
+  }
+
+  const products = await getProductsByOrderId(order.id);
+  res.send(products);
+});
+
+export default router;

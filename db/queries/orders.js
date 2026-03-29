@@ -42,6 +42,9 @@ export async function addProductToOrder(orderId, productId, quantity) {
       (order_id, product_id, quantity)
     VALUES
       ($1, $2, $3)
+    ON CONFLICT (order_id, product_id)
+    DO UPDATE
+    SET quantity = orders_products.quantity + EXCLUDED.quantity
     RETURNING *
   `;
   const {
@@ -52,7 +55,7 @@ export async function addProductToOrder(orderId, productId, quantity) {
 
 export async function getProductsByOrderId(orderId) {
   const sql = `
-    SELECT products.*
+    SELECT products.*, orders_products.quantity
     FROM orders_products
     JOIN products
       ON orders_products.product_id = products.id
